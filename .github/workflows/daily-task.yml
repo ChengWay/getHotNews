@@ -2,7 +2,6 @@ name: 每日热点新闻推送
 on:
   schedule:
     - cron: "0 8 * * *"
-  # 支持网页手动点击测试运行
   workflow_dispatch:
 
 jobs:
@@ -27,4 +26,6 @@ jobs:
           WX_APPSECRET: ${{ secrets.WX_APPSECRET }}
           WX_OPENID: ${{ secrets.WX_OPENID }}
           WX_TEMPLATE_ID: ${{ secrets.WX_TEMPLATE_ID }}
+          # 下面这一行就是你缺失的！！
+          ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
         run: python main.py
