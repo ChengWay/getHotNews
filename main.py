@@ -32,8 +32,15 @@ def send_wx_template(news_data):
     access_token = get_wechat_access_token()
     send_url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
 
-    # 把news数组拼接成完整文本
-    news_text = "\n".join(news_data["news"])
+    # 截取前10条，清洗多余符号
+    news_list = news_data["news"][:10]
+    clean_news = []
+    for item in news_list:
+        # 清除前后多余引号
+        txt = item.strip(" '；,")
+        clean_news.append(txt)
+    news_text = "\n".join(clean_news)
+
     post_body = {
         "touser": WX_OPENID,
         "template_id": WX_TEMPLATE_ID,
