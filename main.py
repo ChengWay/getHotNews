@@ -1,5 +1,6 @@
 import requests
 import os
+import re
 
 # ============ 环境变量密钥 ============
 ALAPI_TOKEN = os.getenv("ALAPI_TOKEN")
@@ -21,20 +22,40 @@ def get_daily_news():
     return res["data"]
 
 
+def format_clean(text):
+    """后置格式化清洗：统一序号、清理空行、去除多余符号"""
+    # 去除多余空行，只保留单行换行
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    cleaned = []
+    idx = 1
+    for line in lines:
+        # 去掉已有的序号（数字+点、中文序号、短横线等）
+        line = re.sub(r"^(\d+[.、．]|[一二三四五六七八九十]+[、．]|[-*•] )\s*", "", line)
+        # 重新加上标准序号
+        cleaned.append(f"{idx}. {line}")
+        idx += 1
+    return "\n".join(cleaned)
+
+
 def ai_sort_news(raw_news_list):
-    """调用智谱 glm-4-flash 永久免费模型整理新闻"""
+    """调用智谱 glm-4-flash 整理新闻（强格式Prompt + 后置清洗）"""
     raw_text = "\n".join(raw_news_list)
 
     prompt = f"""
 【角色】
-专业资讯编辑，仅负责新闻的格式优化与语句润色。
+专业资讯编辑，只做新闻格式标准化处理。
 
-【必须遵守的规则】
-1. 完整保留全部新闻条目，不得删减任何一条，不得修改新闻事实
-2. 去除每条新闻首尾多余的标点、符号、无效空格，使语句通顺自然
-3. 严格使用「1. 2. 3.」有序列表输出，每条新闻单独占一行，序号连续
-4. 禁止输出任何额外内容：不得加开场白、结束语、总结、评论、补充说明
-5. 不添加主观解读，不扩展信息，只做格式和表达优化
+【强制输出规则】
+1. 完整保留全部新闻条目和事实，不得删减、不得改写原意
+2. 去除每条新闻首尾多余的标点、引号、分号、无效空格
+3. 严格使用纯数字序号格式：1. 2. 3. ……，每条新闻独占一行
+4. 绝对禁止输出：开场白、结束语、总结、评论、小标题、markdown标记
+5. 只输出整理后的新闻列表，除此之外不要任何文字
+
+【输出示例（仅参考格式）】
+1. 第一条新闻内容
+2. 第二条新闻内容
+3. 第三条新闻内容
 
 【原始早报内容】
 {raw_text}
@@ -49,7 +70,7 @@ def ai_sort_news(raw_news_list):
         "messages": [
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.3,
+        "temperature": 0.2,
         "max_tokens": 2000
     }
 
@@ -61,17 +82,20 @@ def ai_sort_news(raw_news_list):
             timeout=90
         )
         result = resp.json()
-        print("智谱AI返回结果：", result)
+        print("智谱AI原始返回：", result)
 
         if "choices" not in result:
             raise Exception(f"智谱接口返回异常：{result}")
 
         content = result["choices"][0]["message"]["content"].strip()
+        # 后置格式化兜底，强制统一格式
+        content = format_clean(content)
         return content
 
     except Exception as e:
         print(f"AI整理失败，降级使用原始内容：{e}")
-        return "\n".join(raw_news_list)
+        raw_content = "\n".join(raw_news_list)
+        return format_clean(raw_content)
 
 
 def get_wechat_access_token():
