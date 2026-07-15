@@ -10,7 +10,7 @@ WX_OPENID = os.getenv("WX_OPENID")
 WX_TEMPLATE_ID = os.getenv("WX_TEMPLATE_ID")
 ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
 
-# -------------------------- 环境变量完整性校验 --------------------------
+# 环境变量完整性校验
 required_env = [
     ("ALAPI_TOKEN", ALAPI_TOKEN),
     ("WX_APPID", WX_APPID),
@@ -27,22 +27,19 @@ for name, val in required_env:
 if miss_list:
     raise Exception(f"❌ 缺失环境变量密钥：{','.join(miss_list)}")
 
-# 【调试关键】只打印长度，不输出密钥明文，安全排查空格/换行问题
 print(f"✅ ZHIPU_API_KEY 读取成功，字符长度：{len(ZHIPU_API_KEY.strip())}")
-# 对比你本地真实key长度，如果不一致 = Secrets粘贴有多余空格换行
-ZHIPU_API_KEY = ZHIPU_API_KEY.strip()  # 自动剔除首尾隐形空格换行！
+ZHIPU_API_KEY = ZHIPU_API_KEY.strip()
 
 
 def get_daily_news():
-    """获取ALAPI完整原始早报数据"""
+    """获取ALAPI原始早报（仅作为AI输入素材，不直接推送）"""
     try:
         url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}&format=json"
         resp = requests.get(url, timeout=30)
         resp.raise_for_status()
         res = resp.json()
-        print("ALAPI原始返回：", res)
         if res.get("code") != 200:
-            raise Exception(f"早报接口异常 code !=200 {res}")
+            raise Exception(f"早报接口异常 {res}")
         data = res["data"]
         if "news" not in data or len(data["news"]) == 0:
             raise Exception("ALAPI新闻列表为空")
@@ -53,12 +50,11 @@ def get_daily_news():
 
 
 def format_clean(text):
-    """后置格式化清洗兜底：统一有序列表格式"""
+    """统一格式化：标准有序列表，清理杂乱符号"""
     lines = [line.strip() for line in text.split("\n") if line.strip()]
     cleaned = []
     idx = 1
     for line in lines:
-        # 清除所有旧序号、横线、圆点
         line = re.sub(r"^(\d+[.、．]|[一二三四五六七八九十]+[、．]|[-*•●] )\s*", "", line)
         cleaned.append(f"{idx}. {line}")
         idx += 1
@@ -66,16 +62,16 @@ def format_clean(text):
 
 
 def ai_sort_news(raw_news_list):
-    """调用智谱 glm-4-flash 新闻整理"""
+    """AI整理新闻，返回最终可直接推送的规整文本"""
     raw_text = "\n".join(raw_news_list)
 
     prompt = f"""
-【角色】专业资讯编辑，仅标准化排版新闻内容
-【硬性规则】
-1. 完整保留所有新闻条目，严禁删减事实信息
-2. 清除多余引号、分号、杂乱符号，语句通顺
-3. 严格输出格式：1.  2.  3. 有序列表，每条独占一行
-4. 禁止输出任何多余文字：无开场白、总结、注释、markdown符号
+【角色】专业资讯编辑，仅做新闻标准化排版
+【规则】
+1. 完整保留全部新闻条目，不得删减事实
+2. 去除多余引号、分号、杂乱符号，语句通顺
+3. 严格使用 1. 2. 3. 有序列表，每条独占一行
+4. 禁止输出开场白、总结、评论、多余注释
 
 【原始资讯】
 {raw_text}
@@ -102,19 +98,18 @@ def ai_sort_news(raw_news_list):
         result = resp.json()
         print("智谱AI原始返回：", result)
 
-        # 校验返回结构
         if "choices" not in result or len(result["choices"]) == 0:
-            raise Exception(f"AI返回缺少choices字段")
+            raise Exception("AI返回结构异常")
+
         content = result["choices"][0]["message"]["content"].strip()
-        # 统一格式化
         content = format_clean(content)
-        print("✅ AI整理完成并格式化")
+        print("✅ AI整理完成")
         return content
 
     except Exception as e:
-        print(f"⚠️ AI整理失败，自动降级原始新闻：{str(e)}")
-        raw_content = "\n".join(raw_news_list)
-        return format_clean(raw_content)
+        print(f"⚠️ AI调用失败，降级使用原始内容：{str(e)}")
+        # 兜底：AI失败时才用原始内容，保证推送不中断
+        return format_clean("\n".join(raw_news_list))
 
 
 def get_wechat_access_token():
@@ -132,7 +127,10 @@ def get_wechat_access_token():
 
 
 def send_wx_template(date_str, ai_content, weiyu):
-    """推送微信模板消息"""
+    """
+    微信推送：news字段直接传入AI整理后的内容
+    原始新闻不会出现在推送消息中
+    """
     access_token = get_wechat_access_token()
     send_url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
     post_body = {
@@ -140,11 +138,17 @@ def send_wx_template(date_str, ai_content, weiyu):
         "template_id": WX_TEMPLATE_ID,
         "data": {
             "date": {"value": date_str},
-            "summary": {"value": "📰AI整理今日完整热点资讯"},
-            "news": {"value": ai_content},
+            "summary": {"value": "📰AI整理今日热点资讯"},
+            "news": {"value": ai_content},  # 这里传入的就是AI整理后的最终文本
             "tip": {"value": weiyu}
         }
     }
+
+    # 调试日志：确认推送的就是AI整理后的内容
+    print("=== 最终推送到微信的新闻内容 ===")
+    print(ai_content)
+    print("================================")
+
     try:
         resp = requests.post(send_url, json=post_body, timeout=30)
         result = resp.json()
@@ -158,12 +162,15 @@ def send_wx_template(date_str, ai_content, weiyu):
 
 if __name__ == "__main__":
     print("====== 开始执行每日早报任务 ======")
+    # 1. 拉取原始早报（仅作为AI输入）
     news_data = get_daily_news()
     raw_news = news_data["news"]
-    tidy_news = ai_sort_news(raw_news)
+    # 2. AI整理，得到最终推送文本
+    final_news = ai_sort_news(raw_news)
+    # 3. 直接推送AI整理后的内容
     send_wx_template(
         date_str=news_data["date"],
-        ai_content=tidy_news,
+        ai_content=final_news,
         weiyu=news_data["weiyu"]
     )
     print("✅======全部流程执行完成！======")
