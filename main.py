@@ -2,11 +2,11 @@ import requests
 import os
 
 # ============ 环境变量读取密钥（不要直接写死代码） ============
-ALAPI_TOKEN = os.getenv("ALAPI_TOKEN")
-WX_APPID = os.getenv("WX_APPID")
-WX_APPSECRET = os.getenv("WX_APPSECRET")
-WX_OPENID = os.getenv("WX_OPENID")
-WX_TEMPLATE_ID = os.getenv("WX_TEMPLATE_ID")
+ALAPI_TOKEN = os.getenv("whcjhnozn4dxvp8xak7z1llidsqjki")
+WX_APPID = os.getenv("wxf63db9729e7155e2")
+WX_APPSECRET = os.getenv("fd8346f210b6804b9fb4e79f809899c7")
+WX_OPENID = os.getenv("o8gfI2GVp3uvbL4TAsSYvTUv2Asg")
+WX_TEMPLATE_ID = os.getenv("AGiMYxjIT-g26CwDCy0gNWInSU9b9NuAsu-PofpgUzQ")
 
 def get_daily_news():
     """调用ALAPI 获取每日早报"""
