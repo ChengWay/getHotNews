@@ -1,7 +1,7 @@
 import requests
 import os
 
-# ============ 环境变量读取密钥（不要直接写死代码） ============
+# ============ 环境变量读取密钥 ============
 ALAPI_TOKEN = os.getenv("ALAPI_TOKEN")
 WX_APPID = os.getenv("WX_APPID")
 WX_APPSECRET = os.getenv("WX_APPSECRET")
@@ -32,14 +32,16 @@ def send_wx_template(news_data):
     access_token = get_wechat_access_token()
     send_url = f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}"
 
+    # 把news数组拼接成完整文本
+    news_text = "\n".join(news_data["news"])
     post_body = {
         "touser": WX_OPENID,
         "template_id": WX_TEMPLATE_ID,
         "data": {
             "date": {"value": news_data["date"]},
-            "summary": {"value": news_data["brief"]},
-            "news": {"value": news_data["news"]},
-            "tip": {"value": news_data["tip"]}
+            "summary": {"value": "今日热点资讯汇总"},
+            "news": {"value": news_text},
+            "tip": {"value": news_data["weiyu"]}
         }
     }
     resp = requests.post(send_url, json=post_body, timeout=20)
