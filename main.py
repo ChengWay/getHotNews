@@ -13,6 +13,7 @@ def get_daily_news():
     url = f"https://v3.alapi.cn/api/zaobao?token={ALAPI_TOKEN}&format=json"
     resp = requests.get(url, timeout=20)
     res = resp.json()
+    print("接口完整返回数据：", res)
     if res.get("code") != 200:
         raise Exception(f"新闻接口异常：{res}")
     return res["data"]
@@ -36,7 +37,7 @@ def send_wx_template(news_data):
         "template_id": WX_TEMPLATE_ID,
         "data": {
             "date": {"value": news_data["date"]},
-            "summary": {"value": news_data["summary"]},
+            "summary": {"value": news_data["brief"]},
             "news": {"value": news_data["news"]},
             "tip": {"value": news_data["tip"]}
         }
