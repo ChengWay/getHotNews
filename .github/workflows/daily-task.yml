@@ -1,19 +1,18 @@
-name: 每日新闻推送
+name: 每日热点新闻推送
 on:
   schedule:
-    # cron是UTC时区！ 0 8 * * * = UTC早上8点 = 北京时间16点
     - cron: "0 8 * * *"
-  # 允许网页手动运行测试
+  # 支持网页手动点击测试运行
   workflow_dispatch:
 
 jobs:
-  run-task:
+  run-job:
     runs-on: ubuntu-latest
     steps:
       - name: 拉取仓库代码
         uses: actions/checkout@v4
 
-      - name: 配置Python环境
+      - name: 配置Python3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -21,8 +20,11 @@ jobs:
       - name: 安装依赖requests
         run: pip install requests
 
-      - name: 执行新闻脚本
+      - name: 执行新闻推送脚本
         env:
           ALAPI_TOKEN: ${{ secrets.ALAPI_TOKEN }}
-          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          WX_APPID: ${{ secrets.WX_APPID }}
+          WX_APPSECRET: ${{ secrets.WX_APPSECRET }}
+          WX_OPENID: ${{ secrets.WX_OPENID }}
+          WX_TEMPLATE_ID: ${{ secrets.WX_TEMPLATE_ID }}
         run: python main.py
