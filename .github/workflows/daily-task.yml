@@ -27,4 +27,5 @@ jobs:
           WQ_CORP_ID: ${{ secrets.WQ_CORP_ID }}
           WQ_CORP_SECRET: ${{ secrets.WQ_CORP_SECRET }}
           WQ_AGENT_ID: ${{ secrets.WQ_AGENT_ID }}
+          WQ_USER_ID: ${{ secrets.WQ_USER_ID }}
         run: python main.py
