@@ -1,6 +1,7 @@
 name: 每日热点新闻推送
 on:
   schedule:
+    # UTC 8点 = 北京时间16点，自行调整cron
     - cron: "0 8 * * *"
   workflow_dispatch:
 
@@ -22,10 +23,8 @@ jobs:
       - name: 执行新闻推送脚本
         env:
           ALAPI_TOKEN: ${{ secrets.ALAPI_TOKEN }}
-          WX_APPID: ${{ secrets.WX_APPID }}
-          WX_APPSECRET: ${{ secrets.WX_APPSECRET }}
-          WX_OPENID: ${{ secrets.WX_OPENID }}
-          WX_TEMPLATE_ID: ${{ secrets.WX_TEMPLATE_ID }}
-          # 下面这一行就是你缺失的！！
           ZHIPU_API_KEY: ${{ secrets.ZHIPU_API_KEY }}
+          WQ_CORP_ID: ${{ secrets.WQ_CORP_ID }}
+          WQ_CORP_SECRET: ${{ secrets.WQ_CORP_SECRET }}
+          WQ_AGENT_ID: ${{ secrets.WQ_AGENT_ID }}
         run: python main.py
