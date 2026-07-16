@@ -10,7 +10,7 @@ ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
 WQ_CORP_ID = os.getenv("WQ_CORP_ID")
 WQ_CORP_SECRET = os.getenv("WQ_CORP_SECRET")
 WQ_AGENT_ID = os.getenv("WQ_AGENT_ID")
-WQ_USER_ID = "WangChengWei"  # 固定你的成员账号，无需放入secrets
+WQ_USER_ID = os.getenv("WQ_USER_ID")
 
 # ===================== 环境变量完整性校验 =====================
 required_env = [
@@ -18,7 +18,8 @@ required_env = [
     ("ZHIPU_API_KEY", ZHIPU_API_KEY),
     ("WQ_CORP_ID", WQ_CORP_ID),
     ("WQ_CORP_SECRET", WQ_CORP_SECRET),
-    ("WQ_AGENT_ID", WQ_AGENT_ID)
+    ("WQ_AGENT_ID", WQ_AGENT_ID),
+    ("WQ_USER_ID", WQ_USER_ID)
 ]
 miss_list = []
 for name, val in required_env:
@@ -29,6 +30,7 @@ if miss_list:
     raise Exception(f"❌ 缺失环境变量密钥：{','.join(miss_list)}")
 
 ZHIPU_API_KEY = ZHIPU_API_KEY.strip()
+WQ_USER_ID = WQ_USER_ID.strip()
 
 
 def get_daily_news():
